@@ -76,10 +76,22 @@ namespace :sync do
     run_locally("mampmysql -u#{local_settings["username"]} #{"-p#{local_settings["password"]}" if local_settings["password"]} #{local_settings["database"]} < config/production-#{remote_settings["database"]}-dump.sql")
   end
   
+  desc "Push local database to production"
   task :db_up, :roles => :app do
-    #############################
-    #THIS NEEDS TO BE COMPLETED #
-    #############################
+    # load the production settings within the database file
+    remote_settings = YAML::load_file("config/database.yml")["production"]
+    
+    # we also need the local settings so that we can import the fresh database properly
+    local_settings = YAML::load_file("config/database.yml")["development"]
+    
+    # dump the local database and store it in the current path's data directory
+    run_locally("mampmysqldump -u#{local_settings["username"]} #{"-p#{local_settings["password"]}" if local_settings["password"]} #{local_settings["database"]} > config/development-#{remote_settings["database"]}-dump.sql")
+    
+    # rsyncing the remote database dump with the local copy of the dump
+    run_locally("rsync --times --rsh=ssh --compress --human-readable --progress config/development-#{remote_settings["database"]}-dump.sql #{user}@#{shared_host}:#{current_path}/config/development-#{remote_settings["database"]}-dump.sql")
+    
+    run "mysql -u'#{remote_settings["username"]}' -p'#{remote_settings["password"]}' -h'#{remote_settings["host"]}' '#{remote_settings["database"]}' < #{current_path}/config/development-#{remote_settings["database"]}-dump.sql"
+    
   end
   
   task :content_down, :roles => :app do
