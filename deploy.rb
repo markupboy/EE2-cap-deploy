@@ -72,6 +72,9 @@ namespace :sync do
     # rsyncing the remote database dump with the local copy of the dump
     run_locally("rsync --times --rsh=ssh --compress --human-readable --progress #{user}@#{shared_host}:#{current_path}/config/production-#{remote_settings["database"]}-dump.sql config/production-#{remote_settings["database"]}-dump.sql")
     
+    # make a backup of the local database, just in case
+    run_locally("mampmysqldump -u#{local_settings["username"]} #{"-p#{local_settings["password"]}" if local_settings["password"]} #{local_settings["database"]} > config/development-backup-#{local_settings["database"]}-dump.sql")
+    
     # now that we have the upated production dump file we should use the local settings to import this db.
     run_locally("mampmysql -u#{local_settings["username"]} #{"-p#{local_settings["password"]}" if local_settings["password"]} #{local_settings["database"]} < config/production-#{remote_settings["database"]}-dump.sql")
   end
@@ -90,6 +93,10 @@ namespace :sync do
     # rsyncing the remote database dump with the local copy of the dump
     run_locally("rsync --times --rsh=ssh --compress --human-readable --progress config/development-#{remote_settings["database"]}-dump.sql #{user}@#{shared_host}:#{current_path}/config/development-#{remote_settings["database"]}-dump.sql")
     
+    # backup the remote database
+    run "mysqldump -u'#{remote_settings["username"]}' -p'#{remote_settings["password"]}' -h'#{remote_settings["host"]}' '#{remote_settings["database"]}' > #{current_path}/config/production-backup-#{remote_settings["database"]}-dump.sql"
+    
+    # import the new database
     run "mysql -u'#{remote_settings["username"]}' -p'#{remote_settings["password"]}' -h'#{remote_settings["host"]}' '#{remote_settings["database"]}' < #{current_path}/config/development-#{remote_settings["database"]}-dump.sql"
     
   end
