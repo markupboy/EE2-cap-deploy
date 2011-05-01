@@ -7,35 +7,39 @@
 
 ##### Settings #####
 
+# load the application settings
+app_setting = YAML::load_file("config/config.yml")["app"]
+
+# load the production settings within the database file
+remote_settings = YAML::load_file("config/config.yml")["production"]
+
+# we also need the local settings so that we can import the fresh database properly
+local_settings = YAML::load_file("config/config.yml")["development"]
+
 # the name of your website - should also be the name of the directory
-set :application, "markupboy.com"
+set :application, "#{app_settings["name"]}"
 
 # the name of your system directory, which you may have customized
-set :ee_system, "ee-system"
+set :ee_system, "#{app_settings["ee_system"]}"
 
 # the path to your new deployment directory on the server
 # by default, the name of the application (e.g. "/var/www/sites/example.com")
-set :deploy_to, "/home/mbadmin/web/markupboy.com"
+set :deploy_to, "#{app_settings["deploy_to"]}"
 
 # the path to the old (non-capistrano) ExpressionEngine installation
-set :ee_previous_path, "/home/mbadmin/web/public"
+set :ee_previous_path, "#{app_settings["previous_path"]}"
 
 # the git-clone url for your repository
-set :repository, "git@github.com:markupboy/markupboy.com.git"
+set :repository, "#{app_settings["repository"]}"
 
 # the branch you want to clone (default is master)
-set :branch, "master"
+set :branch, "#{app_settings["branch"]}"
 
 # the name of the deployment user-account on the server
-set :user, "mbadmin"
+set :user, "#{app_settings["user"]}"
 
 # the shared host to pull your remote assets and database from
-set :shared_host, "markupboy.com"
-
-
-
-
-##### You shouldn't need to edit below unless you're customizing #####
+set :shared_host, "#{app_settings["shared_host"]}"
 
 # Additional SCM settings
 set :scm, :git
@@ -60,12 +64,6 @@ namespace :sync do
   
   desc "Pull down production database for use locally"
   task :db_down, :roles => :app do
-    # load the production settings within the database file
-    remote_settings = YAML::load_file("config/database.yml")["production"]
-    
-    # we also need the local settings so that we can import the fresh database properly
-    local_settings = YAML::load_file("config/database.yml")["development"]
-    
     # dump the production database and store it in the current path's data directory
     run "mysqldump -u'#{remote_settings["username"]}' -p'#{remote_settings["password"]}' -h'#{remote_settings["host"]}' '#{remote_settings["database"]}' > #{current_path}/config/production-#{remote_settings["database"]}-dump.sql"
     
