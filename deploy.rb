@@ -8,7 +8,7 @@
 ##### Settings #####
 
 # load the application settings
-app_setting = YAML::load_file("config/config.yml")["app"]
+app_settings = YAML::load_file("config/config.yml")["app"]
 
 # load the production settings within the database file
 remote_settings = YAML::load_file("config/config.yml")["production"]
