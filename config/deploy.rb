@@ -6,40 +6,7 @@
 
 
 ##### Settings #####
-
-# load the application settings
-app_settings = YAML::load_file("config/config.yml")["app"]
-
-# load the production settings within the database file
-remote_settings = YAML::load_file("config/config.yml")["production_db"]
-
-# we also need the local settings so that we can import the fresh database properly
-local_settings = YAML::load_file("config/config.yml")["development_db"]
-
-# the name of your website - should also be the name of the directory
-set :application, "#{app_settings["name"]}"
-
-# the name of your system directory, which you may have customized
-set :ee_system, "#{app_settings["ee_system"]}"
-
-# the path to your new deployment directory on the server
-# by default, the name of the application (e.g. "/var/www/sites/example.com")
-set :deploy_to, "#{app_settings["deploy_to"]}"
-
-# the path to the old (non-capistrano) ExpressionEngine installation
-set :ee_previous_path, "#{app_settings["ee_previous_path"]}"
-
-# the git-clone url for your repository
-set :repository, "#{app_settings["repository"]}"
-
-# the branch you want to clone (default is master)
-set :branch, "#{app_settings["branch"]}"
-
-# the name of the deployment user-account on the server
-set :user, "#{app_settings["user"]}"
-
-# the shared host to pull your remote assets and database from
-set :shared_host, "#{app_settings["shared_host"]}"
+set :local_db_settings, YAML::load_file("config/config.yml")["development"]
 
 # Additional SCM settings
 set :scm, :git
@@ -50,14 +17,11 @@ set :keep_releases, 3
 set :use_sudo, false
 set :copy_compression, :bz2
 
-# Roles
-role :app, "#{application}"
-role :web, "#{application}"
-role :db,  "#{application}", :primary => true
-
 # Deployment process
 after "deploy:update", "deploy:cleanup" 
 after "deploy", "deploy:set_permissions", "deploy:create_symlinks"
+
+on :load, "development"
 
 # Custom syncing tasks
 namespace :sync do
@@ -65,31 +29,31 @@ namespace :sync do
   desc "Pull down production database for use locally"
   task :db_down, :roles => :app do
     # dump the production database and store it in the current path's data directory
-    run "mysqldump -u'#{remote_settings["username"]}' #{"-p#{remote_settings["password"]}" if remote_settings["password"]} -h'#{remote_settings["host"]}' '#{remote_settings["database"]}' > #{current_path}/config/production-#{remote_settings["database"]}-dump.sql"
+    run "mysqldump -u'#{remote_db_settings["username"]}' #{"-p#{remote_db_settings["password"]}" if remote_db_settings["password"]} -h'#{remote_db_settings["host"]}' '#{remote_db_settings["database"]}' > #{current_path}/config/production-#{remote_db_settings["database"]}-dump.sql"
     
     # rsyncing the remote database dump with the local copy of the dump
-    run_locally("rsync --times --rsh=ssh --compress --human-readable --progress #{user}@#{shared_host}:#{current_path}/config/production-#{remote_settings["database"]}-dump.sql config/production-#{remote_settings["database"]}-dump.sql")
+    run_locally("rsync --times --rsh=ssh --compress --human-readable --progress #{user}@#{shared_host}:#{current_path}/config/production-#{remote_db_settings["database"]}-dump.sql config/production-#{remote_db_settings["database"]}-dump.sql")
     
     # make a backup of the local database, just in case
-    run_locally("mysqldump -u#{local_settings["username"]} #{"-p#{local_settings["password"]}" if local_settings["password"]} #{local_settings["database"]} > config/development-backup-#{local_settings["database"]}-dump.sql")
+    run_locally("mysqldump -u#{local_db_settings["username"]} #{"-p#{local_db_settings["password"]}" if local_db_settings["password"]} #{local_db_settings["database"]} > config/development-backup-#{local_db_settings["database"]}-dump.sql")
     
     # now that we have the upated production dump file we should use the local settings to import this db.
-    run_locally("mysql -u#{local_settings["username"]} #{"-p#{local_settings["password"]}" if local_settings["password"]} #{local_settings["database"]} < config/production-#{remote_settings["database"]}-dump.sql")
+    run_locally("mysql -u#{local_db_settings["username"]} #{"-p#{local_db_settings["password"]}" if local_db_settings["password"]} #{local_db_settings["database"]} < config/production-#{remote_db_settings["database"]}-dump.sql")
   end
   
   desc "Push local database to production"
   task :db_up, :roles => :app do
     # dump the local database and store it in the current path's data directory
-    run_locally("mysqldump -u#{local_settings["username"]} #{"-p#{local_settings["password"]}" if local_settings["password"]} #{local_settings["database"]} > config/development-#{remote_settings["database"]}-dump.sql")
+    run_locally("mysqldump -u#{local_db_settings["username"]} #{"-p#{local_db_settings["password"]}" if local_db_settings["password"]} #{local_db_settings["database"]} > config/development-#{remote_db_settings["database"]}-dump.sql")
         
     # rsyncing the remote database dump with the local copy of the dump
-    run_locally("rsync --times --rsh=ssh --compress --human-readable --progress config/development-#{remote_settings["database"]}-dump.sql #{user}@#{shared_host}:#{current_path}/config/development-#{remote_settings["database"]}-dump.sql")
+    run_locally("rsync --times --rsh=ssh --compress --human-readable --progress config/development-#{remote_db_settings["database"]}-dump.sql #{user}@#{shared_host}:#{current_path}/config/development-#{remote_db_settings["database"]}-dump.sql")
     
     # backup the remote database
-    run "mysqldump -u'#{remote_settings["username"]}' #{"-p#{remote_settings["password"]}" if remote_settings["password"]} -h'#{remote_settings["host"]}' '#{remote_settings["database"]}' > #{current_path}/config/production-backup-#{remote_settings["database"]}-dump.sql"
+    run "mysqldump -u'#{remote_db_settings["username"]}' #{"-p#{remote_db_settings["password"]}" if remote_db_settings["password"]} -h'#{remote_db_settings["host"]}' '#{remote_db_settings["database"]}' > #{current_path}/config/production-backup-#{remote_db_settings["database"]}-dump.sql"
     
     # import the new database
-    run "mysql -u'#{remote_settings["username"]}' #{"-p#{remote_settings["password"]}" if remote_settings["password"]} -h'#{remote_settings["host"]}' '#{remote_settings["database"]}' < #{current_path}/config/development-#{remote_settings["database"]}-dump.sql"
+    run "mysql -u'#{remote_db_settings["username"]}' #{"-p#{remote_db_settings["password"]}" if remote_db_settings["password"]} -h'#{remote_db_settings["host"]}' '#{remote_db_settings["database"]}' < #{current_path}/config/development-#{remote_db_settings["database"]}-dump.sql"
     
   end
   
@@ -179,4 +143,14 @@ namespace :deploy do
     run "if [ -e #{current_release}/#{ee_system}/cache/magpie_cache ]; then rm -r #{current_release}/#{ee_system}/cache/magpie_cache/*; fi"
   end
 
+end
+
+namespace :recipe_debug do 
+  
+  task :default do
+    #put cap recipe testing junk here
+    puts local_db_settings.inspect
+    puts remote_db_settings.inspect
+  end
+  
 end
