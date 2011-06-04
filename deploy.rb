@@ -11,10 +11,10 @@
 app_settings = YAML::load_file("config/config.yml")["app"]
 
 # load the production settings within the database file
-remote_settings = YAML::load_file("config/config.yml")["production"]
+remote_settings = YAML::load_file("config/config.yml")["production_db"]
 
 # we also need the local settings so that we can import the fresh database properly
-local_settings = YAML::load_file("config/config.yml")["development"]
+local_settings = YAML::load_file("config/config.yml")["development_db"]
 
 # the name of your website - should also be the name of the directory
 set :application, "#{app_settings["name"]}"
@@ -27,7 +27,7 @@ set :ee_system, "#{app_settings["ee_system"]}"
 set :deploy_to, "#{app_settings["deploy_to"]}"
 
 # the path to the old (non-capistrano) ExpressionEngine installation
-set :ee_previous_path, "#{app_settings["previous_path"]}"
+set :ee_previous_path, "#{app_settings["ee_previous_path"]}"
 
 # the git-clone url for your repository
 set :repository, "#{app_settings["repository"]}"
@@ -65,7 +65,7 @@ namespace :sync do
   desc "Pull down production database for use locally"
   task :db_down, :roles => :app do
     # dump the production database and store it in the current path's data directory
-    run "mysqldump -u'#{remote_settings["username"]}' -p'#{remote_settings["password"]}' -h'#{remote_settings["host"]}' '#{remote_settings["database"]}' > #{current_path}/config/production-#{remote_settings["database"]}-dump.sql"
+    run "mysqldump -u'#{remote_settings["username"]}' #{"-p#{remote_settings["password"]}" if remote_settings["password"]} -h'#{remote_settings["host"]}' '#{remote_settings["database"]}' > #{current_path}/config/production-#{remote_settings["database"]}-dump.sql"
     
     # rsyncing the remote database dump with the local copy of the dump
     run_locally("rsync --times --rsh=ssh --compress --human-readable --progress #{user}@#{shared_host}:#{current_path}/config/production-#{remote_settings["database"]}-dump.sql config/production-#{remote_settings["database"]}-dump.sql")
@@ -79,23 +79,17 @@ namespace :sync do
   
   desc "Push local database to production"
   task :db_up, :roles => :app do
-    # load the production settings within the database file
-    remote_settings = YAML::load_file("config/database.yml")["production"]
-    
-    # we also need the local settings so that we can import the fresh database properly
-    local_settings = YAML::load_file("config/database.yml")["development"]
-    
     # dump the local database and store it in the current path's data directory
     run_locally("mysqldump -u#{local_settings["username"]} #{"-p#{local_settings["password"]}" if local_settings["password"]} #{local_settings["database"]} > config/development-#{remote_settings["database"]}-dump.sql")
-    
+        
     # rsyncing the remote database dump with the local copy of the dump
     run_locally("rsync --times --rsh=ssh --compress --human-readable --progress config/development-#{remote_settings["database"]}-dump.sql #{user}@#{shared_host}:#{current_path}/config/development-#{remote_settings["database"]}-dump.sql")
     
     # backup the remote database
-    run "mysqldump -u'#{remote_settings["username"]}' -p'#{remote_settings["password"]}' -h'#{remote_settings["host"]}' '#{remote_settings["database"]}' > #{current_path}/config/production-backup-#{remote_settings["database"]}-dump.sql"
+    run "mysqldump -u'#{remote_settings["username"]}' #{"-p#{remote_settings["password"]}" if remote_settings["password"]} -h'#{remote_settings["host"]}' '#{remote_settings["database"]}' > #{current_path}/config/production-backup-#{remote_settings["database"]}-dump.sql"
     
     # import the new database
-    run "mysql -u'#{remote_settings["username"]}' -p'#{remote_settings["password"]}' -h'#{remote_settings["host"]}' '#{remote_settings["database"]}' < #{current_path}/config/development-#{remote_settings["database"]}-dump.sql"
+    run "mysql -u'#{remote_settings["username"]}' #{"-p#{remote_settings["password"]}" if remote_settings["password"]} -h'#{remote_settings["host"]}' '#{remote_settings["database"]}' < #{current_path}/config/development-#{remote_settings["database"]}-dump.sql"
     
   end
   
