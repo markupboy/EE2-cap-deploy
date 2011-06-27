@@ -10,16 +10,16 @@ development:
 
 staging: 
   # the name of your website - should also be the name of the directory
-  application: staging
+  application: sample
   # the name of your system directory, which you may have customized
-  ee_system: ee-system
+  ee_system: system
   # the path to your new deployment directory on the server
   # by default, the name of the application (e.g. "/var/www/sites/example.com")
-  deploy_to: /var/www/html/weknownext/ee2
+  deploy_to: /var/www/html/sample/ee
   # the path to the old (non-capistrano) ExpressionEngine installation
-  ee_previous_path: /var/www/html/weknownext/public
+  ee_previous_path: /var/www/html/sample/public
   # the git-clone url for your repository
-  repository: git@viget.unfuddle.com:viget/gmmb.git
+  repository: git@sample.com
   # the branch you want to clone (default is master)
   branch: master
   # the name of the deployment user-account on the server
@@ -27,23 +27,23 @@ staging:
   # remote environment database settings
   remote_db_settings:
     adapter: mysql
-    database: gmmb_weknownext
-    username: staging
+    database: sample_db
+    username: root
     password: 
-    host: halethorpe5.lab.viget.com
+    host: localhost
 
 production:
   # the name of your website - should also be the name of the directory
-  application: weknownext.clients.viget.com
+  application: sample
   # the name of your system directory, which you may have customized
-  ee_system: ee-system
+  ee_system: system
   # the path to your new deployment directory on the server
   # by default, the name of the application (e.g. "/var/www/sites/example.com")
-  deploy_to: /var/www/html/weknownext/ee2
+  deploy_to: /var/www/html/sample/ee
   # the path to the old (non-capistrano) ExpressionEngine installation
-  ee_previous_path: /var/www/html/weknownext/public
+  ee_previous_path: /var/www/html/sample/public
   # the git-clone url for your repository
-  repository: git@viget.unfuddle.com:viget/gmmb.git
+  repository: git@sample.com
   # the branch you want to clone (default is master)
   branch: master
   # the name of the deployment user-account on the server
@@ -51,7 +51,7 @@ production:
   # remote environment database settings
   remote_db_settings:
     adapter: mysql
-    database: gmmb_weknownext
-    username: staging
+    database: sample_db
+    username: root
     password: 
-    host: halethorpe5.lab.viget.com
+    host: localhost
